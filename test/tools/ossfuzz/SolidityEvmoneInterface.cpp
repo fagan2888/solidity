@@ -16,7 +16,7 @@
 */
 // SPDX-License-Identifier: GPL-3.0
 
-#include <test/tools/ossfuzz/SolidityEvmOneInterface.h>
+#include <test/tools/ossfuzz/SolidityEvmoneInterface.h>
 
 #include <liblangutil/Exceptions.h>
 #include <liblangutil/SourceReferenceFormatter.h>
@@ -31,13 +31,13 @@ SolidityCompilationFramework::SolidityCompilationFramework(langutil::EVMVersion 
 solidity::bytes SolidityCompilationFramework::compileContract(
 	std::string const& _sourceCode,
 	std::string const& _contractName,
-	std::map<std::string, solidity::util::h160> const& _libraryAddresses,
+	std::map<std::string, solidity::util::h160> _libraryAddresses,
 	frontend::OptimiserSettings _optimization
 )
 {
 	std::string sourceCode = _sourceCode;
 	m_compiler.setSources({{"", sourceCode}});
-	m_compiler.setLibraries(_libraryAddresses);
+	m_compiler.setLibraries(move(_libraryAddresses));
 	m_compiler.setEVMVersion(m_evmVersion);
 	m_compiler.setOptimiserSettings(_optimization);
 	if (!m_compiler.compile())
@@ -46,8 +46,8 @@ solidity::bytes SolidityCompilationFramework::compileContract(
 
 		for (auto const& error: m_compiler.errors())
 			formatter.printExceptionInformation(
-					*error,
-					formatter.formatErrorInformation(*error)
+				*error,
+				formatter.formatErrorInformation(*error)
 			);
 		std::cerr << "Compiling contract failed" << std::endl;
 	}
@@ -59,7 +59,7 @@ solidity::bytes SolidityCompilationFramework::compileContract(
 	return obj.bytecode;
 }
 
-bool EVMOneUtility::isOutputExpected(
+bool EvmoneUtility::isOutputExpected(
 	uint8_t const* _result,
 	size_t _length,
 	std::vector<uint8_t> const& _expectedOutput
@@ -71,7 +71,7 @@ bool EVMOneUtility::isOutputExpected(
 	return (memcmp(_result, _expectedOutput.data(), _length) == 0);
 }
 
-evmc_message EVMOneUtility::initializeMessage(bytes const& _input)
+evmc_message EvmoneUtility::initializeMessage(bytes const& _input)
 {
 	// Zero initialize all message fields
 	evmc_message msg = {};
@@ -83,7 +83,7 @@ evmc_message EVMOneUtility::initializeMessage(bytes const& _input)
 	return msg;
 }
 
-evmc::result EVMOneUtility::executeContract(
+evmc::result EvmoneUtility::executeContract(
 	EVMHost& _hostContext,
 	bytes const& _functionHash,
 	evmc_address _deployedAddress
@@ -95,14 +95,18 @@ evmc::result EVMOneUtility::executeContract(
 	return _hostContext.call(message);
 }
 
-evmc::result EVMOneUtility::deployContract(EVMHost& _hostContext, bytes const& _code)
+evmc::result EvmoneUtility::deployContract(EVMHost& _hostContext, bytes const& _code)
 {
 	evmc_message message = initializeMessage(_code);
 	message.kind = EVMC_CREATE;
 	return _hostContext.call(message);
 }
 
-evmc::result EVMOneUtility::deployAndExecute(EVMHost& _hostContext, bytes _byteCode, std::string _hexEncodedInput)
+evmc::result EvmoneUtility::deployAndExecute(
+	EVMHost& _hostContext,
+	bytes const& _byteCode,
+	std::string const& _hexEncodedInput
+)
 {
 	// Deploy contract and signal failure if deploy failed
 	evmc::result createResult = deployContract(_hostContext, _byteCode);
@@ -124,11 +128,11 @@ evmc::result EVMOneUtility::deployAndExecute(EVMHost& _hostContext, bytes _byteC
 	return callResult;
 }
 
-evmc::result EVMOneUtility::compileDeployAndExecute(
+evmc::result EvmoneUtility::compileDeployAndExecute(
 	EVMHost& _hostContext,
-	std::string _sourceCode,
-	std::string _contractName,
-	std::string _methodName,
+	std::string const& _sourceCode,
+	std::string const& _contractName,
+	std::string const& _methodName,
 	frontend::OptimiserSettings _optimisation,
 	std::string _libraryName
 )
@@ -169,10 +173,10 @@ evmc::result EVMOneUtility::compileDeployAndExecute(
 	);
 }
 
-std::pair<solidity::bytes, Json::Value> EVMOneUtility::compileContract(
-	std::string _sourceCode,
-	std::string _contractName,
-	std::map<std::string, solidity::util::h160> const& _libraryAddresses,
+std::pair<solidity::bytes, Json::Value> EvmoneUtility::compileContract(
+	std::string const& _sourceCode,
+	std::string const& _contractName,
+	std::map<std::string, solidity::util::h160> _libraryAddresses,
 	frontend::OptimiserSettings _optimisation
 )
 {
@@ -182,12 +186,12 @@ std::pair<solidity::bytes, Json::Value> EVMOneUtility::compileContract(
 		SolidityCompilationFramework solCompilationFramework;
 		return std::make_pair(
 			solCompilationFramework.compileContract(_sourceCode, _contractName, _libraryAddresses, _optimisation),
-			solCompilationFramework.getMethodIdentifiers()
+			solCompilationFramework.methodIdentifiers()
 		);
 	}
 	// Ignore stack too deep errors during compilation
 	catch (evmasm::StackTooDeepException const&)
 	{
-		return std::make_pair(bytes{}, Json::Value(0));
+		return {{}, {}};
 	}
 }

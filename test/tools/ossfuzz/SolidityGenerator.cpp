@@ -24,7 +24,7 @@
 using namespace solidity::test::fuzzer::mutator;
 using namespace solidity::util;
 using namespace std;
-using PrngUtil = solidity::test::fuzzer::GenerationProbability;
+using PrngUtil = solidity::test::fuzzer::mutator::GenerationProbability;
 
 GeneratorBase::GeneratorBase(std::shared_ptr<SolidityGenerator> _mutator)
 {
