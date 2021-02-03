@@ -1015,12 +1015,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 		{
 			_functionCall.expression().accept(*this);
 			solAssert(function.parameterTypes().empty(), "");
-
-			ArrayType const& arrayType = dynamic_cast<ArrayType const&>(
-				*dynamic_cast<MemberAccess const&>(_functionCall.expression()).expression().annotation().type
-			);
+			solAssert(_functionCall.annotation().arrayType != nullptr, "");
+			ArrayType const& arrayType = *_functionCall.annotation().arrayType;
 			solAssert(arrayType.dataStoredIn(DataLocation::Storage), "");
-
 			ArrayUtils(m_context).popStorageArrayElement(arrayType);
 			break;
 		}

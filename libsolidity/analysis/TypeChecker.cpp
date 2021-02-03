@@ -2312,6 +2312,7 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 		_functionCall.expression().annotation().arguments = std::move(funcCallArgs);
 	}
 
+	m_arrayType = nullptr;
 	_functionCall.expression().accept(*this);
 
 	Type const* expressionType = type(_functionCall.expression());
@@ -2350,6 +2351,12 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 			functionType->kind() == FunctionType::Kind::ByteArrayPush
 		)
 			isLValue = functionType->parameterTypes().empty();
+
+		if (functionType->kind() == FunctionType::Kind::ArrayPop)
+		{
+			solAssert(m_arrayType != nullptr, "");
+			funcCallAnno.arrayType = m_arrayType;
+		}
 
 		break;
 
@@ -2833,6 +2840,9 @@ bool TypeChecker::visit(MemberAccess const& _memberAccess)
 				_memberAccess.location(),
 				"Storage arrays with nested mappings do not support .push(<arg>)."
 			);
+
+		if (funType->kind() == FunctionType::Kind::ArrayPop && memberName == "pop")
+			m_arrayType = dynamic_cast<ArrayType const*>(exprType);
 
 		if (!funType->bound())
 			if (auto typeType = dynamic_cast<TypeType const*>(exprType))

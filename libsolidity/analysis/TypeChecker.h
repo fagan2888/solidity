@@ -180,6 +180,8 @@ private:
 			return m_currentSourceUnit;
 	}
 
+	ArrayType const* m_arrayType = nullptr;
+
 	SourceUnit const* m_currentSourceUnit = nullptr;
 	ContractDefinition const* m_currentContract = nullptr;
 

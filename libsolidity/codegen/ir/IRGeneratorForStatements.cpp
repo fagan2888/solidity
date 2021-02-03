@@ -1286,8 +1286,8 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 	}
 	case FunctionType::Kind::ArrayPop:
 	{
-		auto const& memberAccessExpression = dynamic_cast<MemberAccess const&>(_functionCall.expression()).expression();
-		ArrayType const& arrayType = dynamic_cast<ArrayType const&>(*memberAccessExpression.annotation().type);
+		solAssert(_functionCall.annotation().arrayType != nullptr, "");
+		ArrayType const& arrayType = *_functionCall.annotation().arrayType;
 		define(_functionCall) <<
 			m_utils.storageArrayPopFunction(arrayType) <<
 			"(" <<
